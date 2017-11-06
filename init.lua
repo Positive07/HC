@@ -98,14 +98,14 @@ function HC:point(x,y)
 end
 
 -- collision detection
-function HC:neighbors(shape)
-	local neighbors = self.hash:inSameCells(shape:bbox())
+function HC:neighbors(shape, set)
+	local neighbors = self.hash:inSameCells(shape:bbox(), set)
 	rawset(neighbors, shape, nil)
 	return neighbors
 end
 
-function HC:collisions(shape)
-	local candidates = self:neighbors(shape)
+function HC:collisions(shape, set)
+	local candidates = self:neighbors(shape, set)
 	for other in pairs(candidates) do
 		local collides, dx, dy = shape:collidesWith(other)
 		if collides then

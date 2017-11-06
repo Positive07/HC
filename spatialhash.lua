@@ -74,8 +74,12 @@ function Spatialhash:shapes()
 end
 
 -- get all shapes that are in the same cells as the bbox x1,y1 '--. x2,y2
-function Spatialhash:inSameCells(x1,y1, x2,y2)
-	local set = {}
+function Spatialhash:inSameCells(x1,y1, x2,y2, set)
+	set = set or {}
+	for k in pairs(set) do
+		set[k] = nil
+	end
+
 	x1, y1 = self:cellCoords(x1, y1)
 	x2, y2 = self:cellCoords(x2, y2)
 	for i = x1,x2 do
