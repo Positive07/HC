@@ -39,8 +39,8 @@ local newCircleShape  = Shapes.newCircleShape
 local newPointShape   = Shapes.newPointShape
 
 local HC = {}
-function HC:init(cell_size)
-	self.hash = common_local.instance(Spatialhash, cell_size or 100)
+function HC:init(cell_size, strong)
+	self.hash = common_local.instance(Spatialhash, cell_size or 100, strong)
 end
 
 -- spatial hash management

@@ -21,6 +21,7 @@ THE SOFTWARE.
 ]]--
 
 local floor = math.floor
+local weak = {__mode = "kv"}
 
 local _PACKAGE, common_local = (...):match("^(.+)%.[^%.]+"), common
 if not (type(common) == 'table' and common.class and common.instance) then
@@ -31,9 +32,10 @@ end
 local vector = require(_PACKAGE .. '.vector-light')
 
 local Spatialhash = {}
-function Spatialhash:init(cell_size)
+function Spatialhash:init(cell_size, strong)
 	self.cell_size = cell_size or 100
 	self.cells = {}
+	self.strong = strong
 end
 
 function Spatialhash:cellCoords(x,y)
@@ -49,7 +51,10 @@ function Spatialhash:cell(i,k)
 
 	local cell = rawget(row, k)
 	if not cell then
-		cell = setmetatable({}, {__mode = "kv"})
+		cell = {}
+		if not self.strong then
+			setmetatable(cell, weak)
+		end
 		rawset(row, k, cell)
 	end
 
