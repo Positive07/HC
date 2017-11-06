@@ -140,9 +140,14 @@ end
 -- Polygon class
 --
 local Polygon = {}
+local newPolygon
+
+local vert_error = "Need at least 3 non collinear points to build polygon (got %s)"
 function Polygon:init(...)
 	local vertices = removeCollinear( toVertexList({}, ...) )
-	assert(#vertices >= 3, "Need at least 3 non collinear points to build polygon (got "..#vertices..")")
+	if #vertices < 3 then
+		error(vert_error:format(#vertices), 2)
+	end
 
 	-- assert polygon is oriented counter clockwise
 	local p
@@ -165,13 +170,15 @@ function Polygon:init(...)
 		p, q = q, vertices[i]
 		for k = i+1,#vertices-1 do
 			local a,b = vertices[k], vertices[k+1]
-			assert(not segmentsInterset(p,q, a,b), 'Polygon may not intersect itself')
+			if segmentsInterset(p,q, a,b) then
+				error('Polygon may not intersect itself', 2)
+			end
 		end
 	end
 
 	self.vertices = vertices
 	-- make vertices immutable
-	setmetatable(self.vertices, {__newindex = function() error("Thou shall not change a polygon's vertices!") end})
+	setmetatable(self.vertices, {__newindex = function() error("Thou shall not change a polygon's vertices!", 2) end})
 
 	-- compute polygon area and centroid
 	p,q = vertices[#vertices], vertices[1]
@@ -201,8 +208,6 @@ function Polygon:init(...)
 			vector.dist(vertices[i].x,vertices[i].y, self.centroid.x,self.centroid.y))
 	end
 end
-local newPolygon
-
 
 -- return vertices as x1,y1,x2,y2, ..., xn,yn
 function Polygon:unpack()
@@ -327,7 +332,9 @@ function Polygon:triangulate()
 			n_vert, skipped = n_vert - 1, 0
 		else
 			skipped = skipped + 1
-			assert(skipped <= n_vert, "Cannot triangulate polygon")
+			if skipped > n_vert then
+				error("Cannot triangulate polygon", 2)
+			end
 		end
 		current = next
 	end
@@ -341,7 +348,9 @@ end
 -- return merged polygon if possible or nil otherwise
 function Polygon:mergedWith(other)
 	local p,q = getSharedEdge(self.vertices, other.vertices)
-	assert(p and q, "Polygons do not share an edge")
+	if not (p and q) then
+		error("Polygons do not share an edge", 2)
+	end
 
 	local ret = {}
 	for i = 1,p-1 do

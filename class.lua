@@ -29,7 +29,9 @@ local function __NULL__() end
 -- class "inheritance" by copying functions
 local function inherit(class, interface, ...)
 	if not interface then return end
-	assert(type(interface) == "table", "Can only inherit from other classes.")
+	if type(interface) ~= "table" then
+		error("Can only inherit from other classes.", 2)
+	end
 
 	-- __index and construct are not overwritten as for them class[name] is defined
 	for name, func in pairs(interface) do
@@ -55,7 +57,9 @@ local function new(args)
 		name = args.name or name
 		constructor = args[1] or __NULL__
 	end
-	assert(type(constructor) == "function", 'constructor has to be nil or a function')
+	if type(constructor) ~= "function" then
+		error('Constructor has to be nil or a function', 2)
+	end
 
 	-- build class
 	local class = {}

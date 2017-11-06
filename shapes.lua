@@ -30,15 +30,11 @@ local _PACKAGE, common_local = (...):match("^(.+)%.[^%.]+"), common
 if not (type(common) == 'table' and common.class and common.instance) then
 	assert(common_class ~= false, 'No class commons specification available.')
 	require(_PACKAGE .. '.class')
+	common_local, common = common, common_local
 end
 local vector  = require(_PACKAGE .. '.vector-light')
 local Polygon = require(_PACKAGE .. '.polygon')
 local GJK     = require(_PACKAGE .. '.gjk') -- actual collision detection
-
--- reset global table `common' (required by class commons)
-if common_local ~= common then
-	common_local, common = common, common_local
-end
 
 --
 -- base class
@@ -72,7 +68,9 @@ end
 local ConvexPolygonShape = {}
 function ConvexPolygonShape:init(polygon)
 	Shape.init(self, 'polygon')
-	assert(polygon:isConvex(), "Polygon is not convex.")
+	if not polygon:isConvex() then
+		error("Polygon is not convex.", 2)
+	end
 	self._polygon = polygon
 end
 
@@ -375,7 +373,9 @@ end
 
 
 function ConcavePolygonShape:scale(s)
-	assert(type(s) == "number" and s > 0, "Invalid argument. Scale must be greater than 0")
+	if type(s) ~= "number" or s <= 0 then
+		error("Invalid argument. Scale must be greater than 0", 2)
+	end
 	local cx,cy = self:center()
 	self._polygon:scale(s, cx,cy)
 	for _, p in ipairs(self._shapes) do
@@ -386,12 +386,16 @@ function ConcavePolygonShape:scale(s)
 end
 
 function ConvexPolygonShape:scale(s)
-	assert(type(s) == "number" and s > 0, "Invalid argument. Scale must be greater than 0")
+	if type(s) ~= "number" or s <= 0 then
+		error("Invalid argument. Scale must be greater than 0", 2)
+	end
 	self._polygon:scale(s, self:center())
 end
 
 function CircleShape:scale(s)
-	assert(type(s) == "number" and s > 0, "Invalid argument. Scale must be greater than 0")
+	if type(s) ~= "number" or s <= 0 then
+		error("Invalid argument. Scale must be greater than 0", 2)
+	end
 	self._radius = self._radius * s
 end
 
