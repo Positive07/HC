@@ -80,8 +80,11 @@ local function EPA(shape_a, shape_b)
 		last_diff_dist = diff_dist
 
 		-- simplex = {..., simplex[edge.i-1], px, py, simplex[edge.i]
-		table.insert(simplex, edge.i, py)
-		table.insert(simplex, edge.i, px)
+		for i = n, edge.i, -1 do
+      simplex[i+2] = simplex[i]
+    end
+    simplex[edge.i+0] = px
+    simplex[edge.i+1] = py
 
 		n = n + 2
 	end
