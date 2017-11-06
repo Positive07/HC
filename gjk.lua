@@ -28,7 +28,7 @@ local _PACKAGE = (...):match("^(.+)%.[^%.]+")
 local vector  = require(_PACKAGE .. '.vector-light')
 local huge, abs = math.huge, math.abs
 
-local simplex = {}
+local simplex, edge = {}, {}
 
 local function support(shape_a, shape_b, dx, dy)
 	local x,y = shape_a:support(dx,dy)
@@ -37,7 +37,7 @@ end
 
 -- returns closest edge to the origin
 local function closest_edge(n)
-	local e = {dist = huge}
+	edge.dist = huge
 
 	local i = n-1
 	for k = 1,n-1,2 do
@@ -49,14 +49,12 @@ local function closest_edge(n)
 		local nx,ny = vector.normalize(ex,ey)
 		local d = vector.dot(ax,ay, nx,ny)
 
-		if d < e.dist then
-			e.dist = d
-			e.nx, e.ny = nx, ny
-			e.i = k
+		if d < edge.dist then
+			edge.dist = d
+			edge.nx, edge.ny = nx, ny
+			edge.i = k
 		end
 	end
-
-	return e
 end
 
 local function EPA(shape_a, shape_b)
@@ -71,19 +69,19 @@ local function EPA(shape_a, shape_b)
 	local is_either_circle = shape_a._center or shape_b._center
 	local last_diff_dist, n = huge, 6
 	while true do
-		local e = closest_edge(n)
-		local px,py = support(shape_a, shape_b, e.nx, e.ny)
-		local d = vector.dot(px,py, e.nx, e.ny)
+		closest_edge(n)
+		local px,py = support(shape_a, shape_b, edge.nx, edge.ny)
+		local d = vector.dot(px,py, edge.nx, edge.ny)
 
-		local diff_dist = d - e.dist
+		local diff_dist = d - edge.dist
 		if diff_dist < 1e-6 or (is_either_circle and abs(last_diff_dist - diff_dist) < 1e-10) then
-			return -d*e.nx, -d*e.ny
+			return -d*edge.nx, -d*edge.ny
 		end
 		last_diff_dist = diff_dist
 
-		-- simplex = {..., simplex[e.i-1], px, py, simplex[e.i]
-		table.insert(simplex, e.i, py)
-		table.insert(simplex, e.i, px)
+		-- simplex = {..., simplex[edge.i-1], px, py, simplex[edge.i]
+		table.insert(simplex, edge.i, py)
+		table.insert(simplex, edge.i, px)
 
 		n = n + 2
 	end
