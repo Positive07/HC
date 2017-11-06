@@ -21,7 +21,6 @@ THE SOFTWARE.
 ]]--
 
 local floor = math.floor
-local min, max = math.min, math.max
 
 local _PACKAGE, common_local = (...):match("^(.+)%.[^%.]+"), common
 if not (type(common) == 'table' and common.class and common.instance) then
@@ -29,6 +28,7 @@ if not (type(common) == 'table' and common.class and common.instance) then
 	require(_PACKAGE .. '.class')
 	common_local, common = common, common_local
 end
+local vector = require(_PACKAGE .. '.vector-light')
 
 local Spatialhash = {}
 function Spatialhash:init(cell_size)
@@ -63,8 +63,8 @@ end
  -- get all shapes
 function Spatialhash:shapes()
 	local set = {}
-	for i,row in pairs(self.cells) do
-		for k,cell in pairs(row) do
+	for _,row in pairs(self.cells) do
+		for _,cell in pairs(row) do
 			for obj in pairs(cell) do
 				rawset(set, obj, obj)
 			end
@@ -151,7 +151,6 @@ function Spatialhash:intersectionsWithSegment(x1, y1, x2, y2)
 	local step = self.cell_size / 2
 	local visited = {}
 	local points = {}
-	local mt = math.huge
 
 	while (cur + step < len) do
 		local cx, cy = x1 + dx * cur,  y1 + dy * cur

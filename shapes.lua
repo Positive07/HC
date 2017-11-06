@@ -395,7 +395,7 @@ function CircleShape:scale(s)
 	self._radius = self._radius * s
 end
 
-function PointShape:scale()
+function PointShape.scale()
 	-- nothing
 end
 
@@ -406,7 +406,7 @@ function ConvexPolygonShape:draw(mode)
 end
 
 function ConcavePolygonShape:draw(mode, wireframe)
-	local mode = mode or 'line'
+	mode = mode or 'line'
 	if mode == 'line' then
 		love.graphics.polygon('line', self._polygon:unpack())
 		if not wireframe then return end
@@ -417,11 +417,13 @@ function ConcavePolygonShape:draw(mode, wireframe)
 end
 
 function CircleShape:draw(mode, segments)
-	love.graphics.circle(mode or 'line', self:outcircle())
+	local x, y, r = self:outcircle()
+	love.graphics.circle(mode or 'line', x, y, r, segments)
 end
 
+local point = love.graphics.point or love.graphics.points --luacheck: ignore
 function PointShape:draw()
-	love.graphics.point(self:center())
+	point(self:center())
 end
 
 
@@ -463,4 +465,3 @@ return {
 	newCircleShape      = newCircleShape,
 	newPointShape       = newPointShape,
 }
-

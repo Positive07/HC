@@ -28,14 +28,11 @@ local _NAME, common_local = ..., common
 if not (type(common) == 'table' and common.class and common.instance) then
 	assert(common_class ~= false, 'No class commons specification available.')
 	require(_NAME .. '.class')
+	common_local, common = common, common_local
 end
 local Shapes      = require(_NAME .. '.shapes')
 local Spatialhash = require(_NAME .. '.spatialhash')
 
--- reset global table `common' (required by class commons)
-if common_local ~= common then
-	common_local, common = common, common_local
-end
 
 local newPolygonShape = Shapes.newPolygonShape
 local newCircleShape  = Shapes.newCircleShape
