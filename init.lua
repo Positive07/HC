@@ -34,9 +34,10 @@ local Shapes      = require(_NAME .. '.shapes')
 local Spatialhash = require(_NAME .. '.spatialhash')
 
 
-local newPolygonShape = Shapes.newPolygonShape
-local newCircleShape  = Shapes.newCircleShape
-local newPointShape   = Shapes.newPointShape
+local newPolygonShape   = Shapes.newPolygonShape
+local newRectangleShape = Shapes.newRectangleShape
+local newCircleShape    = Shapes.newCircleShape
+local newPointShape     = Shapes.newPointShape
 
 local funcs = {'move', 'rotate', 'scale'}
 
@@ -87,8 +88,8 @@ function HC:polygon(...)
 	return self:register(newPolygonShape(...))
 end
 
-function HC:rectangle(x,y,w,h)
-	return self:polygon(x,y, x+w,y, x+w,y+h, x,y+h)
+function HC:rectangle(...)
+	return self:register(newRectangleShape(...))
 end
 
 function HC:circle(x,y,r)
