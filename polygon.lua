@@ -88,21 +88,22 @@ local function pointInTriangle(p, a,b,c)
 	return onSameSide(p,a, b,c) and onSameSide(p,b, a,c) and onSameSide(p,c, a,b)
 end
 
--- test whether any point in vertices (but pqr) lies in the triangle pqr
--- note: vertices is *set*, not a list!
-local function anyPointInTriangle(vertices, p,q,r)
-	for v in pairs(vertices) do
+-- test whether no points in vertices (but pqr) lies in the triangle pqr
+local function noPointInTriangle(vertices, p,q,r)
+	local n = nil
+	for k, v in ipairs(vertices) do
 		if v ~= p and v ~= q and v ~= r and pointInTriangle(v, p,q,r) then
-			return true
+			return false
+		elseif v == q then
+			n = k
 		end
 	end
-	return false
+	return n
 end
 
--- test is the triangle pqr is an "ear" of the polygon
--- note: vertices is *set*, not a list!
+-- test if the triangle pqr is an "ear" of the polygon
 local function isEar(p,q,r, vertices)
-	return ccw(p,q,r) and not anyPointInTriangle(vertices, p,q,r)
+	return ccw(p,q,r) and noPointInTriangle(vertices, p,q,r)
 end
 
 local function segmentsInterset(a,b, p,q)
@@ -126,7 +127,7 @@ local function getSharedEdge(p,q)
 	-- iterate over all edges in q. if both endpoints of that
 	-- edge are in p as well, return the indices of the starting
 	-- vertex
-	local i,k = #q,1
+	local i = #q
 	for k = 1,#q do
 		local v,w = q[i], q[k]
 		if pindex[v.x][v.y] and pindex[w.x][w.y] then
@@ -159,7 +160,8 @@ function Polygon:init(...)
 	-- assert polygon is not self-intersecting
 	-- outer: only need to check segments #vert;1, 1;2, ..., #vert-3;#vert-2
 	-- inner: only need to check unconnected segments
-	local q,p = vertices[#vertices]
+	local p
+	q = vertices[#vertices]
 	for i = 1,#vertices-2 do
 		p, q = q, vertices[i]
 		for k = i+1,#vertices-1 do
@@ -173,7 +175,7 @@ function Polygon:init(...)
 	setmetatable(self.vertices, {__newindex = function() error("Thou shall not change a polygon's vertices!") end})
 
 	-- compute polygon area and centroid
-	local p,q = vertices[#vertices], vertices[1]
+	p,q = vertices[#vertices], vertices[1]
 	local det = vector.det(p.x,p.y, q.x,q.y) -- also used below
 	self.area = det
 	for i = 2,#vertices do
@@ -264,7 +266,7 @@ function Polygon:move(dx, dy)
 	if not dy then
 		dx, dy = dx:unpack()
 	end
-	for i,v in ipairs(self.vertices) do
+	for _,v in ipairs(self.vertices) do
 		v.x = v.x + dx
 		v.y = v.y + dy
 	end
@@ -276,7 +278,7 @@ function Polygon:rotate(angle, cx, cy)
 	if not (cx and cy) then
 		cx,cy = self.centroid.x, self.centroid.y
 	end
-	for i,v in ipairs(self.vertices) do
+	for _,v in ipairs(self.vertices) do
 		-- v = (v - center):rotate(angle) + center
 		v.x,v.y = vector.add(cx,cy, vector.rotate(angle, v.x-cx, v.y-cy))
 	end
@@ -288,7 +290,7 @@ function Polygon:scale(s, cx,cy)
 	if not (cx and cy) then
 		cx,cy = self.centroid.x, self.centroid.y
 	end
-	for i,v in ipairs(self.vertices) do
+	for _,v in ipairs(self.vertices) do
 		-- v = (v - center) * s + center
 		v.x,v.y = vector.add(cx,cy, vector.mul(s, v.x-cx, v.y-cy))
 	end
@@ -310,7 +312,7 @@ function Polygon:triangulate()
 	local concave = {}
 	for i, v in ipairs(vertices) do
 		if not ccw(vertices[prev_idx[i]], v, vertices[next_idx[i]]) then
-			concave[v] = true
+			table.insert(concave, v)
 		end
 	end
 
@@ -319,11 +321,17 @@ function Polygon:triangulate()
 	while n_vert > 3 do
 		next, prev = next_idx[current], prev_idx[current]
 		local p,q,r = vertices[prev], vertices[current], vertices[next]
-		if isEar(p,q,r, concave) then
+
+		local ear = isEar(p,q,r, concave)
+		if ear then
 			if not areCollinear(p, q, r) then
 				triangles[#triangles+1] = newPolygon(p.x,p.y, q.x,q.y, r.x,r.y)
 				next_idx[prev], prev_idx[next] = next, prev
-				concave[q] = nil
+
+				--Swap q (ear) with last item, then remove last item
+				concave[ear] = concave[#concave]
+				concave[#concave] = nil
+
 				n_vert, skipped = n_vert - 1, 0
 			end
 		else
@@ -390,7 +398,7 @@ function Polygon:splitConvex()
 		end
 		i = i + 1
 	until i >= #convex
-	
+
 	return convex
 end
 
@@ -411,7 +419,7 @@ function Polygon:contains(x,y)
 
 	local v = self.vertices
 	local in_polygon = false
-	local p,q = v[#v],v[#v]
+	local q,p = v[#v]
 	for i = 1, #v do
 		p,q = q,v[i]
 		if cut_ray(p,q) or cross_boundary(p,q) then
@@ -426,7 +434,7 @@ function Polygon:intersectionsWithRay(x,y, dx,dy)
 	local wx,wy,det
 
 	local ts = {} -- ray parameters of each intersection
-	local q1,q2 = nil, self.vertices[#self.vertices]
+	local q2,q1 = self.vertices[#self.vertices]
 	for i = 1, #self.vertices do
 		q1,q2 = q2,self.vertices[i]
 		wx,wy = q2.x - q1.x, q2.y - q1.y
