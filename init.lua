@@ -108,14 +108,18 @@ local function collider (shape, other, set, fn, ...)
   local collides, dx, dy = shape:collidesWith(other)
 
   if collides then
-    table.insert(set, {entity = other, x = dx, y = dy})
-    fn(shape, other, dx, dy, ...)
+    if fn then
+      fn(shape, other, dx, dy, ...)
+    else
+      local t = pool:pop()
+      t.entity, t.x, t.y = other, dx, dy
+
+      table.insert(set, t)
   end
 end
 
 function HC:collisions(shape, fn, ...)
-  local set = pool:pop()
-  fn = fn or noop
+  local set = (not fn) and pool:pop() or nil
 
   self._hash:overlapping(shape, collider, set, fn, ...)
 
