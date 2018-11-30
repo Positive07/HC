@@ -1,99 +1,91 @@
---[[
-Copyright (c) 2010-2011 Matthias Richter
+local lowerclass = {
+  _VERSION     = "lowerclass v1.0.0",
+  _DESCRIPTION = "Object Orientation for Lua with a Middleclass-like API",
+  _URL         = "https://github.com/Positive07/lowerclass",
+  _LICENSE     = "MIT LICENSE - Copyright (c) 2017 Pablo. Mayobre (Positive07)"
+}
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-Except as contained in this notice, the name(s) of the above copyright holders
-shall not be used in advertising or otherwise to promote the sale, use or
-other dealings in this Software without prior written authorization.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-]]--
-
-local function __NULL__() end
-
--- class "inheritance" by copying functions
-local function inherit(class, interface, ...)
-	if not interface then return end
-	assert(type(interface) == "table", "Can only inherit from other classes.")
-
-	-- __index and construct are not overwritten as for them class[name] is defined
-	for name, func in pairs(interface) do
-		if not class[name] then
-			class[name] = func
-		end
-	end
-	for super in pairs(interface.__is_a or {}) do
-		class.__is_a[super] = true
-	end
-
-	return inherit(class, ...)
+--Typechecking
+local INVALIDSELF = "Make sure that you are using 'Class:%s' instead of 'Class.%s'"
+local function checkSelf(self, func)
+  if type(self) ~= "table" then error(INVALIDSELF:format(func, func), 3) end
 end
 
--- class builder
-local function new(args)
-	local super = {}
-	local name = '<unnamed class>'
-	local constructor = args or __NULL__
-	if type(args) == "table" then
-		-- nasty hack to check if args.inherits is a table of classes or a class or nil
-		super = (args.inherits or {}).__is_a and {args.inherits} or args.inherits or {}
-		name = args.name or name
-		constructor = args[1] or __NULL__
-	end
-	assert(type(constructor) == "function", 'constructor has to be nil or a function')
-
-	-- build class
-	local class = {}
-	class.__index = class
-	class.__tostring = function() return ("<instance of %s>"):format(tostring(class)) end
-	class.construct = constructor or __NULL__
-	class.inherit = inherit
-	class.__is_a = {[class] = true}
-	class.is_a = function(self, other) return not not self.__is_a[other] end
-
-	-- inherit superclasses (see above)
-	inherit(class, unpack(super))
-
-	-- syntactic sugar
-	local meta = {
-		__call = function(self, ...)
-			local obj = {}
-			setmetatable(obj, self)
-			self.construct(obj, ...)
-			return obj
-		end,
-		__tostring = function() return name end
-	}
-	return setmetatable(class, meta)
+local NAMENEEDED  = "A name (string) is needed for the new class"
+local function checkName(name)
+  if type(name) ~= "string" then error(NAMENEEDED, 3) end
 end
 
--- interface for cross class-system compatibility (see https://github.com/bartbes/Class-Commons).
-if common_class ~= false and not common then
-	common = {}
-	function common.class(name, prototype, parent)
-		local init = prototype.init or (parent or {}).init
-		return new{name = name, inherits = {prototype, parent}, init}
-	end
-	function common.instance(class, ...)
-		return class(...)
-	end
+--Common Class methods
+local INSTANCE, CLASS = 'instance of class %s', 'class %s'
+local function tostring (self)
+  if self == self.class then
+    return CLASS:format(self.name)
+  else
+    return INSTANCE:format(self.name)
+  end
 end
 
--- the module
-return setmetatable({new = new, inherit = inherit},
-	{__call = function(_,...) return new(...) end})
+local function isChildOf(self, parent)
+  checkSelf(self, "is[Subclass/Instance]Of")
+
+  if self.class == parent then
+    return true
+  else
+    return type(self.super) == 'table' and isChildOf(self.super, parent)
+  end
+end
+
+local function new (self, ...)
+  checkSelf(self, "new")
+
+  local obj = setmetatable({}, self)
+  if self.initialize then
+    self.initialize(obj, ...)
+  end
+
+  return obj
+end
+
+local function subclass (self, name)
+  checkSelf(self, "subclass")
+  checkName(name)
+
+  return lowerclass.new(name, self.class)
+end
+
+--Class metatable
+local function call (self, ...)
+  return self:new(...)
+end
+
+local function mt (parent)
+  return { __index = parent, __call = call, __tostring = tostring }
+end
+
+--Main function
+lowerclass.new = function (name, super)
+  checkName(name)
+  if super ~= nil and type(super) ~= "table" then
+    error("super must be a table", 2)
+  end
+
+  local class = {
+    new = new, name = name,
+    super = super, subclass = subclass,
+    isSubclassOf = isChildOf, isInstanceOf = isChildOf,
+
+    __tostring = tostring
+  }
+
+  --class.subclasses = {}
+  --if super and super.subclasses then
+  --  super.subclasses[class] = true
+  --end
+
+  class.class   = class
+  class.__index = class
+  return setmetatable(class, mt(super))
+end
+
+return setmetatable(lowerclass, {__call = function (self, ...) return self.new(...) end})
