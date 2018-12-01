@@ -159,7 +159,7 @@ local function each_overlapping_in_cell(self, idx, e, set, fn, ...)
   end
   for _, v in ipairs(t) do
     if e ~= v and overlaps(e, v) and not set[v] then
-      fn(e[5], v[5], ...)
+      fn(e, v, ...)
       set[v] = true
     end
   end
@@ -173,7 +173,7 @@ local function each_in_same_cell(self, idx, e, set, fn, ...)
   end
   for _, v in ipairs(t) do
     if e ~= v and not set[v] then
-      fn(e[5], v[5], ...)
+      fn(e, v, ...)
       set[v] = true
     end
   end
